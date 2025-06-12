@@ -56,25 +56,61 @@
 
         .audio-item {
             background-color: white;
-            border: 1px solid #e5e5e5;
+            border: 2px solid #e5e5e5;
             border-radius: 8px;
             padding: 12px;
             display: flex;
             align-items: center;
             gap: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+        }
+
+        .audio-item:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+        }
+
+        .audio-item.playing {
+            border-color: #8b5cf6;
+            background-color: #faf5ff;
         }
 
         .voice-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #4b5563;
-            min-width: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #8b5cf6;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .voice-label::before {
+            content: '▶';
+            font-size: 12px;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+
+        .audio-item:hover .voice-label::before {
+            opacity: 1;
+        }
+
+        .audio-item.playing .voice-label::before {
+            content: '■';
+            opacity: 1;
         }
 
         audio {
             flex: 1;
             height: 40px;
             min-width: 0;
+            user-select: auto;
+            -webkit-user-select: auto;
         }
 
         .form-container {
@@ -102,8 +138,12 @@
             }
 
             .voice-label {
-                font-size: 13px;
-                min-width: 45px;
+                font-size: 15px;
+                min-width: 80px;
+            }
+
+            .voice-label::before {
+                font-size: 11px;
             }
 
             audio {
@@ -149,7 +189,7 @@
     </div>
 
     <div class="instructions">
-        <div><span class="step">Step 1:</span> Listen to all 5 voices</div>
+        <div><span class="step">Step 1:</span> Listen to all 5 voice samples</div>
         <div><span class="step">Step 2:</span> Tell us which voice you like the most</div>
     </div>
     
@@ -164,12 +204,13 @@
 
     <script>
         // Audio configuration with your URLs
+        // Make sure your Tally form has options: Slate, Ivory, Teal, Sand, Graphite
         const audioFiles = [
-            { id: 'A', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/LavenderLessons.mp3' },
-            { id: 'B', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Mia_-_Clear_Smooth_Professional.mp3' },
-            { id: 'C', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Shannon_-_Soft_American_Woman.mp3' },
-            { id: 'D', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Tala_-_Filipino-American_Accent.mp3' },
-            { id: 'E', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Veda_Sky_-_Customer_Care_Agen.mp3' }
+            { id: 'Slate', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/LavenderLessons.mp3' },
+            { id: 'Ivory', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Mia_-_Clear_Smooth_Professional.mp3' },
+            { id: 'Teal', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Shannon_-_Soft_American_Woman.mp3' },
+            { id: 'Sand', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Tala_-_Filipino-American_Accent.mp3' },
+            { id: 'Graphite', url: 'https://raw.githubusercontent.com/Hero-HQ/ai-voices/main/Veda_Sky_-_Customer_Care_Agen.mp3' }
         ];
 
         // Fisher-Yates shuffle algorithm
@@ -188,7 +229,7 @@
             div.className = 'audio-item';
             
             div.innerHTML = `
-                <span class="voice-label">Voice ${audioData.id}</span>
+                <span class="voice-label">${audioData.id}</span>
                 <audio controls preload="none">
                     <source src="${audioData.url}" type="audio/mpeg">
                     Your browser does not support the audio element.
@@ -215,10 +256,33 @@
             const orderMapping = shuffledAudios.map(a => a.id).join(',');
             console.log('Audio order for this session:', orderMapping);
             
-            // Add play event listeners to all audio elements
+            // Add event listeners
             const audioElements = document.querySelectorAll('audio');
-            audioElements.forEach(audio => {
+            const audioItems = document.querySelectorAll('.audio-item');
+            
+            // Click on box to play
+            audioItems.forEach((item, index) => {
+                item.addEventListener('click', function(e) {
+                    // Don't trigger if clicking on the audio controls
+                    if (!e.target.closest('audio')) {
+                        const audio = audioElements[index];
+                        if (audio.paused) {
+                            audio.play();
+                        } else {
+                            audio.pause();
+                        }
+                    }
+                });
+            });
+            
+            // Handle play events
+            audioElements.forEach((audio, index) => {
                 audio.addEventListener('play', function() {
+                    // Remove playing class from all items
+                    audioItems.forEach(item => item.classList.remove('playing'));
+                    // Add playing class to current item
+                    audioItems[index].classList.add('playing');
+                    
                     // Pause and reset all other audio elements
                     audioElements.forEach(otherAudio => {
                         if (otherAudio !== audio) {
@@ -226,6 +290,14 @@
                             otherAudio.currentTime = 0;
                         }
                     });
+                });
+                
+                audio.addEventListener('pause', function() {
+                    audioItems[index].classList.remove('playing');
+                });
+                
+                audio.addEventListener('ended', function() {
+                    audioItems[index].classList.remove('playing');
                 });
             });
         }
